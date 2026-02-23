@@ -117,7 +117,7 @@ def _search_pexels(query: str, page: int) -> str | None:
     params = {
         "query": query,
         "orientation": "portrait",
-        "size": "large",
+        "size": "hd",
         "per_page": 15,
         "page": page,
     }
@@ -162,7 +162,11 @@ def _search_pexels(query: str, page: int) -> str | None:
         return None
 
     # Pick the highest resolution candidate
-    candidates.sort(key=lambda x: x[0], reverse=True)
+    # Prefer height closest to 1920 but not exceeding it
+    candidates = [c for c in candidates if c[0] <= 1920]
+    if not candidates:
+        return None
+    candidates.sort(key=lambda x: abs(x[0] - 1920))
     return candidates[0][1]
 
 
@@ -178,8 +182,14 @@ def _best_file(files: list) -> str | None:
 
     if not portrait_files:
         return None
-
-    portrait_files.sort(key=lambda f: f.get("height", 0), reverse=True)
+    # Prefer file closest to 1920 height
+    portrait_files = [
+        f for f in portrait_files
+        if f.get("height", 0) <= 1920
+    ]
+    if not portrait_files:
+        return None
+    portrait_files.sort(key=lambda f: abs(f.get("height", 0) - 1920))
     return portrait_files[0].get("link")
 
 
