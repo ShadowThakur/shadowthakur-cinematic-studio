@@ -300,11 +300,26 @@ def _fetch_one_video(job_id: str, pexels_key: str, emotion: str, slot: int, job_
             vw, vh, dur = v.get("width", 0), v.get("height", 0), v.get("duration", 0)
             if vh <= vw or vh < 1080 or dur < 6:
                 continue
-            files = [f for f in v.get("video_files", []) if f.get("link", "").endswith(".mp4")]
+            
+            files = [
+                f for f in v.get("video_files", [])
+                if f.get("link", "").endswith(".mp4")
+                and f.get("height", 0) > f.get("width", 0)     # must be vertical
+                and 1080 <= f.get("height", 0) <= 1920        # enforce range
+                ]
             if not files:
                 continue
-            files.sort(key=lambda f: f.get("height", 0), reverse=True)
+            # Choose file closest to 1920 (but not exceeding)
+            files.sort(key=lambda f: abs(f.get("height", 0) - 1920))
             best = files[0]
+            add_log(job_id, f"  [pexels] Selected height: {best.get('height')}")
+
+
+            #files = [f for f in v.get("video_files", []) if f.get("link", "").endswith(".mp4")]
+            #if not files:
+             #   continue
+            #files.sort(key=lambda f: f.get("height", 0), reverse=True)
+            #best = files[0]
             from pathlib import Path as _Path
             out_path = _Path(job_dir) / f"visual_{slot}.mp4"
             try:
